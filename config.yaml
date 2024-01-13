@@ -1,0 +1,24 @@
+# information about data sets
+# Path to the data
+data_folder: "/Users/colmconnaughton/LML/Local/data/wind power/"
+
+# Low frequency data
+dataset1:
+  subfolder: "ScoutEnergyData/"
+  locations:
+    BTRG: "Bitter Ridge"
+    HTX: "Heart of Texas"
+    PC1: "Persimmon Creek 1"
+    RNCH: "Ranchero"
+  wind:
+    subfolder : "Wind Speed and Direction/"
+    filenames:
+      BTRG: "BTRG_WindSpeedAndDirection_10min.csv"
+      HTX: "HTX_WindSpeedAndDirection_10min.csv"
+      PC1: "PC1_WindSpeedAndDirection_10min.csv"
+      RNCH: "RNCH_WindSpeedAndDirection_10min.csv"
+
+
+# High frequency data
+dataset2:
+  subfolder: "HowardData/"
