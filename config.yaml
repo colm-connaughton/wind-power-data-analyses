@@ -1,6 +1,7 @@
 # information about data sets
 # Path to the data
 data_folder: "/Users/colmconnaughton/LML/Local/data/wind power/"
+output_folder: "/Users/colmconnaughton/LML/Local/data/wind power/analysis"
 
 # Low frequency data
 dataset1:

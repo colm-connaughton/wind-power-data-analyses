@@ -15,7 +15,7 @@ def read_config(args):
     configfile = pathlib.Path(args.config)
 
     if configfile.exists():
-      logging.info("Reading config file ", str(configfile), "\n")
+      logging.info("Reading config file  %s", configfile)
       try:
          with configfile.open(mode="r") as file:
             config = yaml.load(file, Loader=yaml.SafeLoader)
