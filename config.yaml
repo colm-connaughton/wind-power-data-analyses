@@ -6,7 +6,7 @@ output_folder: "/Users/colmconnaughton/LML/Local/data/wind power/analysis"
 # Low frequency data
 dataset1:
   subfolder: "ScoutEnergyData/"
-  locations:
+  windfarms:
     BTRG: "Bitter Ridge"
     HTX: "Heart of Texas"
     PC1: "Persimmon Creek 1"
