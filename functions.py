@@ -88,3 +88,21 @@ def process_dataset_1(config):
                             filename)
           with open(file, "wb") as f:
             pickle.dump(windspeed[windfarm_id], f)
+
+def process_dataset_2(config):
+   # Process dataset 2 (high frequency data)
+
+    # Create a dictionary of dataframes for the windspeed data from each
+    # wind farm in the high frequency data files
+    data={}
+    for i, filename in enumerate(config["dataset2"]["filenames"]):
+       file = pathlib.Path(config["data_folder"], config["dataset2"]["subfolder"],
+                     filename)
+       if file.exists():
+          logging.info("Processing file: %s", filename)
+          sheet = config["dataset2"]["excel_sheet_names"]["wind"]
+          data[i] = pd.read_excel(file, sheet_name=sheet,skiprows=0)
+          column_names = data[i].columns
+          logging.info(data[i].columns)
+
+

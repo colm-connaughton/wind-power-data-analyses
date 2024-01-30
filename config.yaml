@@ -23,3 +23,12 @@ dataset1:
 # High frequency data
 dataset2:
   subfolder: "HowardData/"
+  windfarms:
+    "HWRD" : "Howard"
+  filenames:
+    - "Howard_WTG_1_&_2_data_for_jay_part_1.xlsx"
+    - "Howard_WTG_1_&_2_data_for_jay_part_2.xlsx"
+    - "Howard_WTG_1_&_2_data_for_jay_part_3.xlsx"
+  excel_sheet_names:
+    "wind" : "WTG 1 and 2 data"
+    "meteo" : "Met tower data"
