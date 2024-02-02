@@ -92,17 +92,51 @@ def process_dataset_1(config):
 def process_dataset_2(config):
    # Process dataset 2 (high frequency data)
 
-    # Create a dictionary of dataframes for the windspeed data from each
-    # wind farm in the high frequency data files
-    data={}
-    for i, filename in enumerate(config["dataset2"]["filenames"]):
-       file = pathlib.Path(config["data_folder"], config["dataset2"]["subfolder"],
-                     filename)
-       if file.exists():
-          logging.info("Processing file: %s", filename)
-          sheet = config["dataset2"]["excel_sheet_names"]["wind"]
-          data[i] = pd.read_excel(file, sheet_name=sheet,skiprows=0)
-          column_names = data[i].columns
-          logging.info(data[i].columns)
+  # This data set contains about 10 days of data for 2 turbines sampled at
+  # approximately 5 second intervals. It includes wind speed, wind direction
+  # and power. The data is split into 3 files containing 3 consecutive
+  # data ranges which needs to be joined together. Each file contains
+  # the data for turbine 1 followed by the data for turbine 2 which need to
+  # be separated out into 2 columns. The sampling rate is also slightly
+  # irregular which needs to be corrected for.
 
+  # Read in the 3 separate raw data files into a dictionary of dataframes
+  raw_data_0={}
+  original_column_names={}
+  for i, filename in enumerate(config["dataset2"]["filenames"]):
+      file = pathlib.Path(config["data_folder"], config["dataset2"]["subfolder"],
+                          filename)
+      if file.exists():
+        logging.info("Processing file: %s", filename)
+        sheet = config["dataset2"]["excel_sheet_names"]["wind"]
+        raw_data_0[i] = pd.read_excel(file, sheet_name=sheet,skiprows=0)
+        original_column_names[i] = raw_data_0[i].columns
+        logging.info(raw_data_0[i].columns)
+
+  # For each data file, separate the data for turbines 1 and 2 and concat
+  # the 3 date ranges together to create a single dataframe for each
+  # turbine
+  raw_data_1 = {}
+  # Loop over the 2 wind turbines
+  for turbine in [1,2]:
+    raw_data_1[turbine] = pd.DataFrame()
+    # Loop over the 3 date ranges for each
+    for i in [0,1,2]:
+        select_rows = raw_data_0[i]["WTG"]== turbine
+        df = raw_data_0[i][select_rows]
+        raw_data_1[turbine] = pd.concat([raw_data_1[turbine], df])
+    # We can now drop the "WTG" column after the split
+    raw_data_1[turbine].drop(columns=['WTG'], inplace=True)
+  # No longer need raw_data_0
+  del raw_data_0
+
+# Interpolate the time series from the two turbines onto a single time index
+# sampled at 5 second intervals
+
+# This code seems to work in the sandpit
+#df = df1[1].set_index(pd.to_datetime(df1[1]['time_stamp'], unit='s'), drop=False)
+#(start, end) = (df.index[0], df.index[-1])
+#resample_index = pd.date_range(start=start, end=end, freq='5s')
+#dummy_frame = pd.DataFrame(np.NaN, index=resample_index, columns=df.columns)
+#df.combine_first(dummy_frame).interpolate().iloc[:6]
 
