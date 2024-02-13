@@ -4,6 +4,7 @@ import yaml
 import logging
 import pathlib
 import pandas as pd
+import numpy as np
 import pickle
 
 
@@ -31,6 +32,14 @@ def read_config(args):
       exit(3)
 
     return config
+
+
+def resample_dataframe(df, start, end, freq):
+  resample_index = pd.date_range(start=start, end=end, freq='5s')
+  dummy_frame = pd.DataFrame(np.NaN, index=resample_index, columns=df.columns)
+  interpolated_frame=df.combine_first(dummy_frame).interpolate()
+  interpolated_frame = interpolated_frame.loc[resample_index].drop_duplicates()
+  return interpolated_frame
 
 def process_dataset_1(config):
    # Process dataset 1 (low frequency data)
@@ -107,11 +116,11 @@ def process_dataset_2(config):
       file = pathlib.Path(config["data_folder"], config["dataset2"]["subfolder"],
                           filename)
       if file.exists():
-        logging.info("Processing file: %s", filename)
+        logging.info("Reading file: %s", filename)
         sheet = config["dataset2"]["excel_sheet_names"]["wind"]
         raw_data_0[i] = pd.read_excel(file, sheet_name=sheet,skiprows=0)
-        original_column_names[i] = raw_data_0[i].columns
-        logging.info(raw_data_0[i].columns)
+        #original_column_names[i] = raw_data_0[i].columns
+        #logging.info(raw_data_0[i].columns)
 
   # For each data file, separate the data for turbines 1 and 2 and concat
   # the 3 date ranges together to create a single dataframe for each
@@ -119,24 +128,49 @@ def process_dataset_2(config):
   raw_data_1 = {}
   # Loop over the 2 wind turbines
   for turbine in [1,2]:
+    logging.info("Recombining data for turbine %s",str(turbine))
     raw_data_1[turbine] = pd.DataFrame()
     # Loop over the 3 date ranges for each
     for i in [0,1,2]:
         select_rows = raw_data_0[i]["WTG"]== turbine
         df = raw_data_0[i][select_rows]
         raw_data_1[turbine] = pd.concat([raw_data_1[turbine], df])
+
     # We can now drop the "WTG" column after the split
     raw_data_1[turbine].drop(columns=['WTG'], inplace=True)
+
+    # Rename the remaining columns to standardise names
+    new_column_names = ["time","speed","direction","power"]
+    relabel = dict(zip(raw_data_1[turbine].columns.to_list(), new_column_names))
+    raw_data_1[turbine].rename(columns=relabel, inplace=True)
+
+    # Set the "time" column as the index
+    raw_data_1[turbine].set_index("time", inplace=True, drop=True)
+
   # No longer need raw_data_0
   del raw_data_0
 
-# Interpolate the time series from the two turbines onto a single time index
-# sampled at 5 second intervals
 
-# This code seems to work in the sandpit
-#df = df1[1].set_index(pd.to_datetime(df1[1]['time_stamp'], unit='s'), drop=False)
-#(start, end) = (df.index[0], df.index[-1])
-#resample_index = pd.date_range(start=start, end=end, freq='5s')
-#dummy_frame = pd.DataFrame(np.NaN, index=resample_index, columns=df.columns)
-#df.combine_first(dummy_frame).interpolate().iloc[:6]
+  # Interpolate the time series from the two turbines onto a single time index
+  # sampled at 5 second intervals
+
+  interpolated_data = {}
+  start = raw_data_1[1].index[0]
+  end = raw_data_1[1].index[-1]
+  freq = '5s'
+  for turbine in [1,2]:
+    logging.info("Interpolating and resampling data for turbine %s",str(turbine))
+    interpolated_data[turbine] = resample_dataframe(raw_data_1[turbine], start, end, freq)
+
+  # We no longer need raw_data_1
+  del raw_data_1
+
+  # Write interpolated data to files
+  for turbine in [1,2]:
+    filename = "windspeed-hwrd-"+str(turbine)+".pkl"
+    file = pathlib.Path(config["output_folder"], config["dataset2"]["subfolder"],
+                            filename)
+    with open(file, "wb") as f:
+      pickle.dump(interpolated_data[turbine], f)
+
 
