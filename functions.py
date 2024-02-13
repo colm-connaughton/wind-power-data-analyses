@@ -165,12 +165,35 @@ def process_dataset_2(config):
   # We no longer need raw_data_1
   del raw_data_1
 
-  # Write interpolated data to files
-  for turbine in [1,2]:
-    filename = "windspeed-hwrd-"+str(turbine)+".pkl"
-    file = pathlib.Path(config["output_folder"], config["dataset2"]["subfolder"],
+  # Regroup the data to create separate frames containing speed, direction and
+  # power timeseries for both turbines.
+  idx = interpolated_data[1].index
+  speed = pd.DataFrame(0, index=idx, columns=["WTG1","WTG2"])
+  direction = pd.DataFrame(0, index=idx, columns=["WTG1","WTG2"])
+  power = pd.DataFrame(0, index=idx, columns=["WTG1","WTG2"])
+  for t in [1,2]:
+    speed["WTG"+str(t)]=interpolated_data[t]["speed"]
+    direction["WTG"+str(t)]=interpolated_data[t]["direction"]
+    power["WTG"+str(t)]=interpolated_data[t]["power"]
+
+  # Write processed data to files
+  filename = "windspeed-hwrd.pkl"
+  file = pathlib.Path(config["output_folder"], config["dataset2"]["subfolder"],
                             filename)
-    with open(file, "wb") as f:
-      pickle.dump(interpolated_data[turbine], f)
+  logging.info("Writing processed wind speed data to %s", filename)
+  with open(file, "wb") as f:
+    pickle.dump(speed, f)
+  filename = "direction-hwrd.pkl"
+  file = pathlib.Path(config["output_folder"], config["dataset2"]["subfolder"],
+                            filename)
+  logging.info("Writing processed wind direction data to %s", filename)
+  with open(file, "wb") as f:
+    pickle.dump(direction, f)
+  filename = "power-hwrd.pkl"
+  file = pathlib.Path(config["output_folder"], config["dataset2"]["subfolder"],
+                            filename)
+  logging.info("Writing processed power data to %s", filename)
+  with open(file, "wb") as f:
+    pickle.dump(power, f)
 
 
