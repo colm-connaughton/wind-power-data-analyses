@@ -24,9 +24,9 @@ def main():
     config = functions.read_config(args)
 
 
-    #functions.process_dataset_1(config)
+    functions.process_dataset_1(config)
 
-    functions.process_dataset_2(config)
+    #functions.process_dataset_2(config)
 
 
 

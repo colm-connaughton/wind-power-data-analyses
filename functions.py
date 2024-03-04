@@ -33,9 +33,33 @@ def read_config(args):
 
     return config
 
+def data_quality_summary(df):
+  logging.info("Data quality:")
+  logging.info("Data column names: ")
+  logging.info(list(df.columns))
+
+  # Total number of rows and columns
+  rows = df.shape[0]
+  cols = df.shape[1]
+  logging.info("Number of rows: %s", rows)
+  logging.info("Number of columns: %s", cols)
+  # Number of rows with at least one NaN
+  rows_with_NaNs = (df.isna().any(axis=1).sum())
+  logging.info("Number of records with at least one NaN: %s", rows_with_NaNs)
+  logging.info("Percentage of records with at least one NaN: %s", rows_with_NaNs/rows*100)
+
+  columns_with_NaNs = (df.isna().any(axis=0).sum())
+  logging.info("Number of columns with at least one NaN: %s", columns_with_NaNs)
+  logging.info("Percentage of columns with at least one NaN: %s", columns_with_NaNs/cols*100)
+
+  # Number of records with all NaNs
+  logging.info("Number of records with all NaNs: %s", df.isna().all(axis=1).sum())
+  logging.info("Percentage of records with all NaNs: %s", df.isna().all(axis=1).sum()/rows*100)
+
+  return 0
 
 def resample_dataframe(df, start, end, freq):
-  resample_index = pd.date_range(start=start, end=end, freq='5s')
+  resample_index = pd.date_range(start=start, end=end, freq=freq)
   dummy_frame = pd.DataFrame(np.NaN, index=resample_index, columns=df.columns)
   interpolated_frame=df.combine_first(dummy_frame).interpolate()
   interpolated_frame = interpolated_frame.loc[resample_index].drop_duplicates()
@@ -44,9 +68,6 @@ def resample_dataframe(df, start, end, freq):
 def process_dataset_1(config):
    # Process dataset 1 (low frequency data)
 
-    # Create a dictionary of dataframes for the windspeed data from each
-    # wind farm in the low frequency data files
-    windspeed={}
 
     # For each windfarm in the low frequency data set extract the windspeed
     # into a dataframe and standardise the column names, index etc
@@ -58,45 +79,56 @@ def process_dataset_1(config):
         if file.exists():
           logging.info("Processing data file %s.", file)
           # Read data into a dataframe and get the column names
-          windspeed[windfarm_id] = pd.read_csv(file, sep=",", header=0)
-          column_names = windspeed[windfarm_id].columns
+          raw_data = pd.read_csv(file, sep=",", header=0)
+          column_names = raw_data.columns
 
           # Different files have different labels for the observation time
           # column. Rename them all to "time" and convert strings into datetime
           # format
           if "t_local" in column_names:
-            windspeed[windfarm_id]["t_local"] = pd.to_datetime(windspeed[windfarm_id]["t_local"], utc=True)
-            windspeed[windfarm_id].rename(columns={"t_local": "time"}, inplace=True)
+            raw_data["t_local"] = pd.to_datetime(raw_data["t_local"], utc=True)
+            raw_data.rename(columns={"t_local": "time"}, inplace=True)
           elif "timestamp" in column_names:
-            windspeed[windfarm_id]["timestamp"] = pd.to_datetime(windspeed[windfarm_id]["timestamp"], utc=True)
-            windspeed[windfarm_id].rename(columns={"timestamp": "time"}, inplace=True)
+            raw_data["timestamp"] = pd.to_datetime(raw_data["timestamp"], utc=True)
+            raw_data.rename(columns={"timestamp": "time"}, inplace=True)
           else:
             logging.error("No time column found in %s. Exiting.", file)
             exit(4)
 
           # Set the "time" column as the index
-          windspeed[windfarm_id].set_index("time", inplace=True)
+          raw_data.set_index("time", inplace=True)
 
           # Drop the "Unnamed" column
           if 'Unnamed: 0' in column_names:
-            windspeed[windfarm_id].drop(columns=['Unnamed: 0'], inplace=True)
-          logging.info(windspeed[windfarm_id].columns)
+            raw_data.drop(columns=['Unnamed: 0'], inplace=True)
+          logging.info(raw_data.columns)
 
-          # Check if there are any NaNs and drop any rows containing NaNs
-          n = windspeed[windfarm_id].isnull().sum().sum()
-          if n>0:
-            logging.warning("%s NaNs found in %s.", n, file)
-            windspeed[windfarm_id].dropna(inplace=True, axis=0)
+          # Sort on the index - surprisingly this is not always the case
+          raw_data.sort_index(inplace=True)
+
+          # Print out some measures of data quality
+          data_quality_summary(raw_data)
+
+          # Interpolate the time series onto a single time index sampled at 10
+          # minute intervals
+          start = raw_data.index[0]
+          end = raw_data.index[-1]
+          freq = '600s'
+          logging.info("Interpolating and resampling data for  %s",windfarm_id)
+          interpolated_data  = resample_dataframe(raw_data, start, end, freq)
+          del raw_data
 
           # Calculate the ensemble average for the wind farm
-          windspeed[windfarm_id]["Mean"] = windspeed[windfarm_id].mean(axis=1)
+          interpolated_data["Mean"] = interpolated_data.mean(axis=1)
 
           # Write the data to a new file
           filename = "windspeed-"+windfarm_id.lower()+".pkl"
           file = pathlib.Path(config["output_folder"], config["dataset1"]["subfolder"],
                             filename)
           with open(file, "wb") as f:
-            pickle.dump(windspeed[windfarm_id], f)
+            pickle.dump(interpolated_data, f)
+
+          del interpolated_data
 
 def process_dataset_2(config):
    # Process dataset 2 (high frequency data)
@@ -146,6 +178,9 @@ def process_dataset_2(config):
 
     # Set the "time" column as the index
     raw_data_1[turbine].set_index("time", inplace=True, drop=True)
+
+    # Print out some measures of data quality
+    data_quality_summary(raw_data_1[turbine])
 
   # No longer need raw_data_0
   del raw_data_0
