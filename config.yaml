@@ -14,10 +14,31 @@ dataset1:
   wind:
     subfolder : "Wind Speed and Direction/"
     filenames:
-      BTRG: "BTRG_WindSpeedAndDirection_10min.csv"
-      HTX: "HTX_WindSpeedAndDirection_10min.csv"
-      PC1: "PC1_WindSpeedAndDirection_10min.csv"
-      RNCH: "RNCH_WindSpeedAndDirection_10min.csv"
+      BTRG: "btrg_windspeed_COD_to_20230601.csv"
+      HTX: "htx_windspeed_COD_to_20230601.csv"
+      PC1: "pc1_windspeed_COD_to_20230601.csv"
+      RNCH: "rnch_windspeed_COD_to_20230601.csv"
+  direction:
+    subfolder : "Wind Speed and Direction/"
+    filenames:
+      BTRG: "btrg_winddir_COD_to_20230601.csv"
+      HTX: "htx_winddir_COD_to_20230601.csv"
+      PC1: "pc1_winddir_COD_to_20230601.csv"
+      RNCH: "rnch_winddir_COD_to_20230601.csv"
+  power:
+    subfolder : "Generation Files/"
+    filenames:
+      BTRG: "btr_prod_COD_to_20230601.csv"
+      HTX: "htx_prod_COD_to_20230601_Common wtg names.csv"
+      PC1: "pcw1_prod_COD_to_20230601.csv"
+      RNCH: "rnch_prod_COD_to_20230511.csv"
+  layout:
+    subfolder: "Final As Built Layouts/"
+    filenames:
+      BTRG: "Bitter Ridge As Built WGS84 Lat Lon.csv"
+      HTX: "Heart of Texas As Built WGS84 Lat Lon.csv"
+      PC1: "Persimmon Creek 1 As Built WGS84 Lat Lon.csv"
+      RNCH: "Ranchero As Built WGS84 Lat Lon.csv"
 
 
 # High frequency data

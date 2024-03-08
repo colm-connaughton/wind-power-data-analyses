@@ -35,8 +35,8 @@ def read_config(args):
 
 def data_quality_summary(df):
   logging.info("Data quality:")
-  logging.info("Data column names: ")
-  logging.info(list(df.columns))
+  #logging.info("Data column names: ")
+  #logging.info(list(df.columns))
 
   # Total number of rows and columns
   rows = df.shape[0]
@@ -65,19 +65,20 @@ def resample_dataframe(df, start, end, freq):
   interpolated_frame = interpolated_frame.loc[resample_index].drop_duplicates()
   return interpolated_frame
 
-def process_dataset_1(config):
+def process_dataset_1(config, measurement='speed'):
    # Process dataset 1 (low frequency data)
 
 
     # For each windfarm in the low frequency data set extract the windspeed
     # into a dataframe and standardise the column names, index etc
     for windfarm_id, windfarm_name  in config["dataset1"]["windfarms"].items():
-        filename = windfarm_id.lower()+"_windspeed_COD_to_20230601.csv"
+        #filename = windfarm_id.lower()+"_windspeed_COD_to_20230601.csv"
+        filename = config["dataset1"]["wind"]["filenames"][windfarm_id]
         file = pathlib.Path(config["data_folder"], config["dataset1"]["subfolder"],
                      config["dataset1"]["wind"]["subfolder"],
                      filename)
-        if file.exists():
-          logging.info("Processing data file %s.", file)
+        if file.exists() and measurement == 'speed':
+          logging.info("Processing windspeed data file %s.", file)
           # Read data into a dataframe and get the column names
           raw_data = pd.read_csv(file, sep=",", header=0)
           column_names = raw_data.columns
@@ -101,13 +102,13 @@ def process_dataset_1(config):
           # Drop the "Unnamed" column
           if 'Unnamed: 0' in column_names:
             raw_data.drop(columns=['Unnamed: 0'], inplace=True)
-          logging.info(raw_data.columns)
+          #logging.info(raw_data.columns)
 
           # Sort on the index - surprisingly this is not always the case
           raw_data.sort_index(inplace=True)
 
           # Print out some measures of data quality
-          data_quality_summary(raw_data)
+          #data_quality_summary(raw_data)
 
           # Interpolate the time series onto a single time index sampled at 10
           # minute intervals
@@ -123,6 +124,124 @@ def process_dataset_1(config):
 
           # Write the data to a new file
           filename = "windspeed-"+windfarm_id.lower()+".pkl"
+          file = pathlib.Path(config["output_folder"], config["dataset1"]["subfolder"],
+                            filename)
+          with open(file, "wb") as f:
+            pickle.dump(interpolated_data, f)
+
+          del interpolated_data
+
+        # For each windfarm in the low frequency data set extract the direction
+        # into a dataframe and standardise the column names, index etc
+        filename = config["dataset1"]["direction"]["filenames"][windfarm_id]
+        file = pathlib.Path(config["data_folder"], config["dataset1"]["subfolder"],
+                     config["dataset1"]["direction"]["subfolder"],
+                     filename)
+        if file.exists() and measurement == 'direction':
+          logging.info("Processing direction data file %s.", file)
+          # Read data into a dataframe and get the column names
+          raw_data = pd.read_csv(file, sep=",", header=0)
+          column_names = raw_data.columns
+          logging.info(raw_data.columns)
+
+          # Different files have different labels for the observation time
+          # column. Rename them all to "time" and convert strings into datetime
+          # format
+          if "t_local" in column_names:
+            raw_data["t_local"] = pd.to_datetime(raw_data["t_local"], utc=True)
+            raw_data.rename(columns={"t_local": "time"}, inplace=True)
+          elif "timestamp" in column_names:
+            raw_data["timestamp"] = pd.to_datetime(raw_data["timestamp"], utc=True)
+            raw_data.rename(columns={"timestamp": "time"}, inplace=True)
+          else:
+            logging.error("No time column found in %s. Exiting.", file)
+            exit(4)
+
+          # Set the "time" column as the index
+          raw_data.set_index("time", inplace=True)
+
+          # Drop the "Unnamed" column
+          if 'Unnamed: 0' in column_names:
+            raw_data.drop(columns=['Unnamed: 0'], inplace=True)
+          #logging.info(raw_data.columns)
+
+          # Sort on the index - surprisingly this is not always the case
+          raw_data.sort_index(inplace=True)
+
+          # Print out some measures of data quality
+          #data_quality_summary(raw_data)
+
+          # Interpolate the time series onto a single time index sampled at 10
+          # minute intervals
+          start = raw_data.index[0]
+          end = raw_data.index[-1]
+          freq = '600s'
+          logging.info("Interpolating and resampling data for  %s",windfarm_id)
+          interpolated_data  = resample_dataframe(raw_data, start, end, freq)
+          del raw_data
+
+           # Write the data to a new file
+          filename = "direction-"+windfarm_id.lower()+".pkl"
+          file = pathlib.Path(config["output_folder"], config["dataset1"]["subfolder"],
+                            filename)
+          with open(file, "wb") as f:
+            pickle.dump(interpolated_data, f)
+
+          del interpolated_data
+
+        # For each windfarm in the low frequency data set extract the power
+        # into a dataframe and standardise the column names, index etc
+        filename = config["dataset1"]["power"]["filenames"][windfarm_id]
+        file = pathlib.Path(config["data_folder"], config["dataset1"]["subfolder"],
+                     config["dataset1"]["power"]["subfolder"],
+                     filename)
+        if file.exists() and measurement == 'power':
+          logging.info("Processing power data file %s.", file)
+          # Read data into a dataframe and get the column names
+          raw_data = pd.read_csv(file, sep=",", header=0)
+          column_names = raw_data.columns
+          logging.info(raw_data.columns)
+
+         # Different files have different labels for the observation time
+          # column. Rename them all to "time" and convert strings into datetime
+          # format
+          if "t_local" in column_names:
+            raw_data["t_local"] = pd.to_datetime(raw_data["t_local"], utc=True)
+            raw_data.rename(columns={"t_local": "time"}, inplace=True)
+          elif "timestamp" in column_names:
+            raw_data["timestamp"] = pd.to_datetime(raw_data["timestamp"], utc=True)
+            raw_data.rename(columns={"timestamp": "time"}, inplace=True)
+          else:
+            logging.error("No time column found in %s. Exiting.", file)
+            exit(4)
+
+          # Set the "time" column as the index
+          raw_data.set_index("time", inplace=True)
+
+          # Drop the "Unnamed" column
+          if 'Unnamed: 0' in column_names:
+            raw_data.drop(columns=['Unnamed: 0'], inplace=True)
+          #logging.info(raw_data.columns)
+
+          # Sort on the index - surprisingly this is not always the case
+          raw_data.sort_index(inplace=True)
+
+          # Print out some measures of data quality
+          #data_quality_summary(raw_data)
+
+          # Interpolate the time series onto a single time index sampled at 10
+          # minute intervals
+          start = raw_data.index[0]
+          end = raw_data.index[-1]
+          logging.info(start)
+          logging.info(end)
+          freq = '600s'
+          logging.info("Interpolating and resampling data for  %s",windfarm_id)
+          interpolated_data  = resample_dataframe(raw_data, start, end, freq)
+          del raw_data
+
+           # Write the data to a new file
+          filename = "power-"+windfarm_id.lower()+".pkl"
           file = pathlib.Path(config["output_folder"], config["dataset1"]["subfolder"],
                             filename)
           with open(file, "wb") as f:
