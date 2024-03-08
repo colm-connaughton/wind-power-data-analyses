@@ -24,9 +24,7 @@ def main():
     config = functions.read_config(args)
 
 
-    #functions.process_dataset_1(config, measurement='speed')
-    #functions.process_dataset_1(config, measurement='direction')
-    functions.process_dataset_1(config, measurement='power')
+    functions.process_dataset_1(config, measurements=['speed','direction','power'])
 
     #functions.process_dataset_2(config)
 
