@@ -1,0 +1,14 @@
+name: env-wind-power
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pyyaml
+  - ca-certificates
+  - openssl
+  - pandas
+  - ipykernel
+  - matplotlib
+  - openpyxl
+  - certifi
+prefix: /Users/colmconnaughton/mambaforge/envs/env-wind-power
